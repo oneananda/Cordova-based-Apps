@@ -17,13 +17,70 @@
  * under the License.
  */
 
-// Wait for the deviceready event before using any of Cordova's device APIs.
-// See https://cordova.apache.org/docs/en/latest/cordova/events/events.html#deviceready
-document.addEventListener('deviceready', onDeviceReady, false);
+document.addEventListener('DOMContentLoaded', loadExpenses);
 
-function onDeviceReady() {
-    // Cordova is now initialized. Have fun!
+function loadExpenses() {
+    const expenses = JSON.parse(localStorage.getItem('expenses')) || [];
+    expenses.forEach(expense => renderExpense(expense));
+    updateTotal();
+}
 
-    console.log('Running cordova-' + cordova.platformId + '@' + cordova.version);
-    document.getElementById('deviceready').classList.add('ready');
+function addExpense() {
+    const description = document.getElementById('description').value.trim();
+    const amount = parseFloat(document.getElementById('amount').value);
+    const category = document.getElementById('category').value;
+
+    if (!description || isNaN(amount) || amount <= 0) {
+        alert('Please enter valid details');
+        return;
+    }
+
+    const expense = {
+        id: Date.now(),
+        description,
+        amount,
+        category
+    };
+
+    renderExpense(expense);
+    saveExpense(expense);
+    updateTotal();
+
+    document.getElementById('description').value = '';
+    document.getElementById('amount').value = '';
+}
+
+function renderExpense(expense) {
+    const expenseList = document.getElementById('expenseList');
+    const li = document.createElement('li');
+    li.setAttribute('data-id', expense.id);
+
+    li.innerHTML = `
+        <div class="expense-item">
+            <span>${expense.description}</span> - $${expense.amount.toFixed(2)} <small>(${expense.category})</small>
+        </div>
+        <button class="delete-btn" onclick="deleteExpense(${expense.id})">Delete</button>
+    `;
+
+    expenseList.appendChild(li);
+}
+
+function saveExpense(expense) {
+    const expenses = JSON.parse(localStorage.getItem('expenses')) || [];
+    expenses.push(expense);
+    localStorage.setItem('expenses', JSON.stringify(expenses));
+}
+
+function deleteExpense(id) {
+    let expenses = JSON.parse(localStorage.getItem('expenses')) || [];
+    expenses = expenses.filter(expense => expense.id !== id);
+    localStorage.setItem('expenses', JSON.stringify(expenses));
+    document.querySelector(`li[data-id="${id}"]`).remove();
+    updateTotal();
+}
+
+function updateTotal() {
+    const expenses = JSON.parse(localStorage.getItem('expenses')) || [];
+    const total = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+    document.getElementById('totalAmount').innerText = total.toFixed(2);
 }
